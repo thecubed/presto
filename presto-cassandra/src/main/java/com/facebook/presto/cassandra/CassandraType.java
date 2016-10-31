@@ -15,6 +15,7 @@ package com.facebook.presto.cassandra;
 
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.CodecNotFoundException;
 import com.datastax.driver.core.utils.Bytes;
 import com.facebook.presto.cassandra.util.CassandraCqlUtils;
 import com.facebook.presto.spi.PrestoException;
@@ -174,7 +175,12 @@ public enum CassandraType
                 case ASCII:
                 case TEXT:
                 case VARCHAR:
-                    return NullableValue.of(nativeType, utf8Slice(row.getString(i)));
+                    try {
+                        return NullableValue.of(nativeType, utf8Slice(row.getString(i)));
+                    }
+                    catch (CodecNotFoundException e) {
+                        return new NullableValue(nativeType, utf8Slice("[Cassandra UDT not supported]"));
+                    }
                 case INT:
                     return NullableValue.of(nativeType, (long) row.getInt(i));
                 case BIGINT:

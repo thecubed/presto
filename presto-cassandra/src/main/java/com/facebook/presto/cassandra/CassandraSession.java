@@ -291,15 +291,22 @@ public class CassandraSession
     private CassandraColumnHandle buildColumnHandle(TableMetadata tableMetadata, ColumnMetadata columnMeta, boolean partitionKey, boolean clusteringKey, int ordinalPosition, boolean hidden)
     {
         CassandraType cassandraType = CassandraType.getCassandraType(columnMeta.getType().getName());
+        if (cassandraType == null) {
+            return new CassandraColumnHandle(connectorId, columnMeta.getName(), ordinalPosition, CassandraType.TEXT, null, partitionKey, clusteringKey, false, hidden);
+        }
         List<CassandraType> typeArguments = null;
         if (cassandraType != null && cassandraType.getTypeArgumentSize() > 0) {
             List<DataType> typeArgs = columnMeta.getType().getTypeArguments();
+            CassandraType tmp = CassandraType.getCassandraType(typeArgs.get(0).getName());
+            if (tmp == null) {
+                return new CassandraColumnHandle(connectorId, columnMeta.getName(), ordinalPosition, CassandraType.TEXT, null, partitionKey, clusteringKey, false, hidden);
+            }
             switch (cassandraType.getTypeArgumentSize()) {
                 case 1:
-                    typeArguments = ImmutableList.of(CassandraType.getCassandraType(typeArgs.get(0).getName()));
+                    typeArguments = ImmutableList.of(tmp);
                     break;
                 case 2:
-                    typeArguments = ImmutableList.of(CassandraType.getCassandraType(typeArgs.get(0).getName()), CassandraType.getCassandraType(typeArgs.get(1).getName()));
+                    typeArguments = ImmutableList.of(tmp, CassandraType.getCassandraType(typeArgs.get(1).getName()));
                     break;
                 default:
                     throw new IllegalArgumentException("Invalid type arguments: " + typeArgs);
